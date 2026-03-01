@@ -7,7 +7,7 @@ resources:
 
 variables:
   # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: 'eb8f5e20-59b2-4f70-a40b-9e3fc63b0b0c'
+  dockerRegistryServiceConnection: '62816aeb-aa44-42b3-a25f-1c16ceaa3953'
   imageRepository: 'lgexample654'
   containerRegistry: 'lgexample654.azurecr.io'
   dockerfilePath: '**/Dockerfile'
@@ -15,7 +15,7 @@ variables:
 
 
   # AKS / Helm
-  aksResourceGroup: 'terraform'
+  aksResourceGroup: 'terraform-prod'
   aksClusterName: 'demo-aks'
   helmReleaseName: 'lg-blazor-example'
   helmChartPath: 'helm/blazor-app'
