@@ -7,7 +7,7 @@ resources:
 
 variables:
   # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: '2b1c68bf-173c-46e9-97b4-b828b672444a'
+  dockerRegistryServiceConnection: 'f35dfb55-5a7c-40eb-a848-7fc203ddf007'
   imageRepository: 'lgexample654'
   containerRegistry: 'lgexample654.azurecr.io'
   dockerfilePath: '**/Dockerfile'
