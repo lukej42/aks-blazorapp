@@ -1,0 +1,110 @@
+# Build Docker image, push to ACR, then deploy to AKS via Helm
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - feature
+      - test
+      - stage
+      - main
+
+resources:
+- repo: self
+
+variables:
+  # Container registry service connection established during pipeline creation
+  dockerRegistryServiceConnection: 'd7fa6e80-8d7e-4a2c-afb2-01006b53bd2a'
+  imageRepository: 'lgexample654'
+  containerRegistry: 'lgexample654.azurecr.io'
+  dockerfilePath: '**/Dockerfile'
+  tag: '$(Build.BuildId)'
+
+  # Shared AKS config
+  aksResourceGroup: 'terraform-prod'
+  helmChartPath: 'helm/blazor-app'
+  vmImageName: 'ubuntu-latest'
+
+# Define your environments and their unique properties using matrix parameters
+parameters:
+- name: environments
+  type: object
+  default:
+  - name: 'Test'
+    branch: 'refs/heads/test'
+    cluster: 'demo-aks-test'
+    release: 'lg-blazor-example-test'
+  - name: 'Stage'
+    branch: 'refs/heads/stage'
+    cluster: 'demo-aks-stage'
+    release: 'lg-blazor-example-stage'
+  - name: 'Prod'
+    branch: 'refs/heads/main'   # Assuming main is your production branch
+    cluster: 'demo-aks-prod'
+    release: 'lg-blazor-example'
+
+stages:
+- stage: Build
+  displayName: Build and push stage
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: $(imageRepository)
+        dockerfile: $(dockerfilePath)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(tag)
+
+# ========================================================
+# DYNAMIC DEPLOY STAGES (Loops through the parameters)
+# ========================================================
+- ${{ checkOut each env in parameters.environments }}:
+  - stage: DeployToAKS_${{ env.name }}
+    displayName: Deploy Helm to AKS (${{ env.name }})
+    dependsOn: Build
+    # Corrected branch check for each specific environment
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], '${{ env.branch }}'))
+    jobs:
+    - deployment: HelmDeploy
+      displayName: Helm deploy to ${{ env.name }}
+      pool:
+        vmImage: $(vmImageName)
+      # Using deployment job lets you track history in Azure DevOps Environments
+      environment: ${{ env.name }} 
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+            - checkout: self
+            - task: AzureCLI@2
+              displayName: Deploy Helm Chart to AKS
+              inputs:
+                azureSubscription: 'Azure subscription 1(1)(525c7c1f-f5e9-4bf4-8d7a-5b7a06889a12)'
+                scriptType: 'bash'
+                scriptLocation: 'inlineScript'
+                inlineScript: |
+                  set -e
+                  
+                  echo "Getting AKS credentials for ${{ env.cluster }}..."
+                  az aks get-credentials \
+                    --resource-group $(aksResourceGroup) \
+                    --name ${{ env.cluster }} \
+                    --overwrite-existing
+                  
+                  echo "Deploying Helm chart..."
+                  helm upgrade --install ${{ env.release }} \
+                    $(System.DefaultWorkingDirectory)/$(helmChartPath) \
+                    --set image.repository=$(containerRegistry)/$(imageRepository) \
+                    --set image.tag=$(tag) \
+                    --wait
+                  
+                  echo "Waiting for rollout..."
+                  kubectl rollout status deployment/${{ env.release }}
