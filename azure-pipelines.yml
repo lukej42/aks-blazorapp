@@ -7,7 +7,7 @@ resources:
 
 variables:
   # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: 'e6335074-cd46-4323-b9b3-6d4667e283a5'
+  dockerRegistryServiceConnection: 'd7fa6e80-8d7e-4a2c-afb2-01006b53bd2a'
   imageRepository: 'lgexample654'
   containerRegistry: 'lgexample654.azurecr.io'
   dockerfilePath: '**/Dockerfile'
@@ -15,10 +15,10 @@ variables:
 
 
   # AKS / Helm
-  aksResourceGroup: 'terraform-dev'
+  aksResourceGroup: 'terraform-prod'
   aksClusterName: 'demo-aks'
-  helmReleaseName: 'lgexample'
-  helmChartPath: 'helm/app'
+  helmReleaseName: 'lg-blazor-example'
+  helmChartPath: 'helm/blazor-app'
 
   # Agent
   vmImageName: 'ubuntu-latest'
@@ -59,7 +59,7 @@ stages:
     - task: AzureCLI@2
       displayName: Deploy Helm Chart to AKS
       inputs:
-        azureSubscription: 'Azure subscription 1(525c7c1f-f5e9-4bf4-8d7a-5b7a06889a12)'
+        azureSubscription: 'Azure subscription 1(1)(525c7c1f-f5e9-4bf4-8d7a-5b7a06889a12)'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
